@@ -3,3 +3,4 @@ python-docx
 Pillow
 fpdf==1.7.2
 sqlalchemy
+ unoconv
