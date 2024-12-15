@@ -17,6 +17,27 @@ dp = Dispatcher(storage=storage)
 dp.include_router(commands.router)
 dp.include_router(file_handler.router)
 
+#
+# # pre checkout  (must be answered in 10 seconds)
+# @dp.pre_checkout_query(lambda query: True)
+# async def pre_checkout_query(pre_checkout_q: PreCheckoutQuery):
+#     await bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
+#
+#
+# # successful payment
+# @dp.message(F.successful_payment)
+# async def successful_payment(message: Message):
+#     print("SUCCESSFUL PAYMENT:")
+#     payment_info = message.successful_payment.to_python()
+#     for k, v in payment_info.items():
+#         print(f"{k} = {v}")
+#
+#     await bot.send_message(message.chat.id,
+#                            f"Платеж на сумму {message.successful_payment.total_amount // 100} {message.successful_payment.currency} прошел успешно!!!")
+#
+#
+
+
 async def set_bot_commands():
     """Установка команд для бота"""
     commands = [
