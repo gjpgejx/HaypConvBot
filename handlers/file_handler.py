@@ -32,7 +32,7 @@ async def handle_file(message: Message, state: FSMContext):
 
     file_id = file.file_id
     file_name = file.file_name if isinstance(file, Document) else "image.jpg"
-    file_path = f"temp/{file_name}"
+    file_path = f"temp/{file_name}-{message.message_id}"
 
     file_info = await message.bot.get_file(document.file_id)
     await message.bot.download_file(file_info.file_path, destination=file_path)
