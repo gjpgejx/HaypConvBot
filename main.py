@@ -6,7 +6,6 @@ from database.models import init_db
 from handlers import commands, file_handler
 
 # Инициализация базы данных
-SessionLocal = init_db()
 
 # Инициализация бота и диспетчера
 bot = Bot(token=TOKEN)

@@ -3,10 +3,11 @@ import os
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, Document, FSInputFile
-from services.document_service import process_document, convert_to_pdf
+
+from database.models import FileStat, SessionLocal
+from services.document_service import convert_to_pdf
 from services.image_service import process_image
 from utils.file_utils import validate_file
-from database.db_helper import add_file_record
 
 router = Router()
 
@@ -38,6 +39,18 @@ async def handle_file(message: Message, state: FSMContext):
     await message.bot.download_file(file_info.file_path, destination=file_path)
 
     await message.answer(f"Файл {document.file_name} успешно сохранен в {file_path}")
+
+    session = SessionLocal()
+    try:
+        file_stat = session.query(FileStat).filter_by(user_id=message.chat.id).first()
+        if not file_stat:
+            file_stat = FileStat(user_id=message.chat.id, file_count=1)
+            session.add(file_stat)
+        else:
+            file_stat.file_count += 1
+        session.commit()
+    finally:
+        session.close()
 
     try:
         file_type = validate_file(file_name)
