@@ -4,10 +4,4 @@ services:
   app:
     build: .
     restart: always
-    volumes:
-      - ./:/app
     command: python main.py
-
-
-volumes:
-  app:
