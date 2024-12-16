@@ -67,12 +67,9 @@ async def buy_command(message: Message, command: CommandObject):
                 or not command.args.isdigit()
                 or not 1 <= int(command.args) <= 2500
         ):
-            await message.answer(
-                "Ошибка с приёмом суммы на оплату..."
-            )
-            # Завершаем обработку
-            return
-        amount = int(command.args)
+           amount = 100
+        else:
+            amount = int(command.args)
 
     PRICE = LabeledPrice(label="Подписка на 1 месяц", amount=amount * 100)  # в копейках (руб)
 
