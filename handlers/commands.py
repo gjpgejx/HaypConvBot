@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from aiogram import Router, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message, LabeledPrice, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, \
-    PreCheckoutQuery
+    PreCheckoutQuery, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from database.models import User, FileStat, SessionLocal
@@ -19,6 +19,10 @@ async def start_command(message: Message):
         text=f"В статистику",
         callback_data="stats"
     )
+    builder.button(
+        text=f"О боте",
+        callback_data="help"
+    )
 
     session = SessionLocal()
     try:
@@ -30,7 +34,8 @@ async def start_command(message: Message):
             )
             session.add(user)
             session.commit()
-            await message.answer("Добро пожаловать! Отправьте файл, чтобы конвертировать его в PDF.", reply_markup=builder.as_markup())
+            await message.answer("Добро пожаловать! Отправьте файл, чтобы конвертировать его в PDF.",
+                                 reply_markup=builder.as_markup())
         else:
             await message.answer("Вы уже зарегистрированы в системе.", reply_markup=builder.as_markup())
     except Exception as e:
@@ -39,7 +44,9 @@ async def start_command(message: Message):
         session.close()
 
 
+# Команда помощи
 @router.message(Command("help"))
+@router.callback_query(F.data=='help')
 async def help_command(message: Message):
     await message.answer(
         "Этот бот конвертирует файлы в формат PDF. Поддерживаются документы (DOCX, ODT, TXT) и изображения (JPG, PNG).\n"
@@ -47,7 +54,7 @@ async def help_command(message: Message):
     )
 
 
-# buy
+# Покупка подписки
 @router.message(Command("buy"))
 @router.callback_query(F.data == "buy")
 async def buy_command(message: Message, command: CommandObject):
@@ -67,7 +74,7 @@ async def buy_command(message: Message, command: CommandObject):
                 or not command.args.isdigit()
                 or not 1 <= int(command.args) <= 2500
         ):
-           amount = 100
+            amount = 100
         else:
             amount = int(command.args)
 
@@ -99,7 +106,7 @@ async def buy_command(message: Message, command: CommandObject):
         payload="test-invoice-payload",
         reply_markup=builder.as_markup())
 
-
+# Обработка пред оплаты - проверка на наличие
 @router.pre_checkout_query()
 async def on_pre_checkout_query(
         pre_checkout_query: PreCheckoutQuery,
@@ -107,6 +114,7 @@ async def on_pre_checkout_query(
     await pre_checkout_query.answer(ok=True)
 
 
+# Обработка успешной оплаты
 @router.message(F.successful_payment)
 async def on_successful_payment(
         message: Message
@@ -151,8 +159,7 @@ async def on_successful_payment(
     finally:
         session.close()
 
-
-
+# Просмотр статистики
 @router.message(Command("stats"))
 @router.callback_query(F.data == "stats")
 async def statistics_command(message: Message):
@@ -160,6 +167,14 @@ async def statistics_command(message: Message):
     builder.button(
         text=f"В меню",
         callback_data="start"
+    )
+    builder.button(
+        text=f"Посмотреть файлы",
+        callback_data="files"
+    )
+    builder.button(
+        text=f"Удаление данных",
+        callback_data="delete"
     )
 
     session = SessionLocal()
@@ -210,6 +225,7 @@ async def handle_reset_stats(callback_query: CallbackQuery):
         session.close()
 
 
+# Удаление аккаунта.
 @router.callback_query(lambda callback_query: callback_query.data.startswith("delete"))
 async def handle_delete_user(callback_query: CallbackQuery):
     session = SessionLocal()
@@ -269,3 +285,63 @@ def create_keyboard():
 async def show_menu(message: Message):
     keyboard = create_keyboard()
     await message.answer("Выберите действие:", reply_markup=keyboard)
+
+
+# Просмотр файлов.
+@router.message(Command('files'))
+@router.callback_query(lambda callback_query: callback_query.data.startswith("files"))
+async def list_converted_files(message: Message):
+    builder = InlineKeyboardBuilder()
+
+    session = SessionLocal()
+    try:
+        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            await message.answer("Вы не зарегистрированы. Пожалуйста, используйте команду /start.")
+            return
+
+        files = session.query(FileStat).filter_by(user_id=message.from_user.id).all()
+        if not files:
+            await message.answer("У вас пока нет конвертированных файлов.")
+        else:
+            for file in files:
+                builder.button(
+                    text=f"Скачать {file.file_name}",
+                    callback_data=f"download {file.id}"
+                )
+                builder.adjust(1)
+
+            file_list = "\n".join([f"{file.id}. {file.file_name}" for file in files])
+
+            await message.answer(
+                f"Ваши файлы:\n{file_list}\n\nДля скачивания файла используйте кнопку или команду /download <ID файла>.",
+                reply_markup=builder.as_markup())
+    except Exception as e:
+        await message.answer(f"Произошла ошибка: {e}")
+    finally:
+        session.close()
+
+# Скачивание файла.
+@router.message(Command('download'))
+@router.callback_query(lambda callback_query: callback_query.data.startswith("download"))
+async def download_file(message: Message):
+    args = message.text.split()
+    if len(args) < 2:
+        await message.reply("Использование команды: /download <id>\nПример: /download 1")
+
+    file_id = int(args[1])
+
+    session = SessionLocal()
+    try:
+        file_stat = session.query(FileStat).filter_by(id=file_id).first()
+        if not file_stat:
+            await message.answer("Файл с указанным ID не найден.")
+            return
+
+        pdf_file = FSInputFile(file_stat.file_path)
+
+        await message.answer_document(pdf_file, caption=f"Ваш файл: {file_stat.file_name}")
+    except Exception as e:
+        await message.answer(f"Произошла ошибка: {e}")
+    finally:
+        session.close()

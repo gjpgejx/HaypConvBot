@@ -53,6 +53,7 @@ async def main():
     # await storage.set_data(chat=None, user=None, data={"db_session": SessionLocal})
 
     # Запускаем бота
+    print('Run bot!')
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     finally:
@@ -60,4 +61,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+    print('Starting!')
     asyncio.run(main())

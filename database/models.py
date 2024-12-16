@@ -25,6 +25,8 @@ class FileStat(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    file_name = Column(String, nullable=False)  # Имя файла
+    file_path = Column(String, nullable=False)  # Путь к файлу
     file_count = Column(Integer, default=0)
     last_used = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

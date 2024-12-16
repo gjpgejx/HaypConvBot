@@ -40,18 +40,6 @@ async def handle_file(message: Message, state: FSMContext):
 
     await message.answer(f"Файл {document.file_name} успешно сохранен в {file_path}")
 
-    session = SessionLocal()
-    try:
-        file_stat = session.query(FileStat).filter_by(user_id=message.chat.id).first()
-        if not file_stat:
-            file_stat = FileStat(user_id=message.chat.id, file_count=1)
-            session.add(file_stat)
-        else:
-            file_stat.file_count += 1
-        session.commit()
-    finally:
-        session.close()
-
     try:
         file_type = validate_file(file_name)
         if file_type == "document":
@@ -61,6 +49,20 @@ async def handle_file(message: Message, state: FSMContext):
 
         # Сохраняем информацию в базу данных
         # add_file_record(db_session, message.from_user.id, file_name, file_type, output_file)
+
+        session = SessionLocal()
+        try:
+            # Сохраняем информацию о файле в базу
+            new_file_stat = FileStat(
+                user_id=message.chat.id,
+                file_name=file_name,
+                file_path=output_file,
+                file_count=1,
+            )
+            session.add(new_file_stat)
+            session.commit()
+        finally:
+            session.close()
 
         # Отправляем пользователю результат
         pdf_file = FSInputFile(output_file)
