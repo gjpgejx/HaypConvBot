@@ -1,6 +1,8 @@
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
 from aiogram.fsm.storage.memory import MemoryStorage
+
+from api import keep_alive
 from config import TOKEN
 from database.models import init_db
 from handlers import commands, file_handler
@@ -54,6 +56,7 @@ async def main():
 
     # Запускаем бота
     print('Run bot!')
+    keep_alive()
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     finally:
