@@ -45,6 +45,9 @@ async def set_bot_commands():
         BotCommand(command="start", description="Запуск бота"),
         BotCommand(command="help", description="Описание возможностей"),
         BotCommand(command="stats", description="Показать статистику"),
+        BotCommand(command="buy", description="Оплата подписки"),
+        BotCommand(command="delete", description="Удаление персональных данных "),
+        BotCommand(command="files", description="Просмотр файлов")
     ]
     await bot.set_my_commands(commands)
 
